@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>青輝石 天井計算ツール</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f6f7fb;
+      padding: 20px;
+    }
+    .container {
+      max-width: 520px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    h1 {
+      font-size: 1.4rem;
+      margin-bottom: 20px;
+    }
+    .question {
+      margin-bottom: 18px;
+    }
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    input[type="number"], input[type="date"] {
+      width: 100%;
+      padding: 8px 10px;
+      font-size: 1rem;
+    }
+    .dates {
+      display: flex;
+      gap: 10px;
+    }
+    .checkboxes label {
+      font-weight: normal;
+      display: block;
+      margin-bottom: 4px;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      background: #4f46e5;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    button:hover {
+      opacity: 0.9;
+    }
+    .result {
+      margin-top: 20px;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>青輝石 天井計算ツール</h1>
+
+    <div class="question">
+      <label>① 今所持している青輝石は？</label>
+      <input type="number" id="stone" min="0" />
+    </div>
+
+    <div class="question">
+      <label>② いつからいつまでの期間ためますか？</label>
+      <div class="dates">
+        <input type="date" id="startDate" />
+        <input type="date" id="endDate" />
+      </div>
+    </div>
+
+    <div class="question">
+      <label>③ サブスク課金ありますか？</label>
+      <div class="checkboxes">
+        <label><input type="checkbox" id="monthly" /> マンスリーパッケージ</label>
+        <label><input type="checkbox" id="half" /> マンスリーパッケージハーフ</label>
+      </div>
+    </div>
+
+    <button onclick="calculate()">計算する</button>
+
+    <div class="result" id="result"></div>
+  </div>
+
+  <script>
+    function calculate() {
+      const X = Number(document.getElementById('stone').value) || 0;
+
+      const start = document.getElementById('startDate').value;
+      const end = document.getElementById('endDate').value;
+      if (!start || !end) {
+        document.getElementById('result').textContent = '期間を正しく入力してください。';
+        return;
+      }
+
+      const startDate = new Date(start);
+      const endDate = new Date(end);
+      const diffTime = endDate - startDate;
+      const Y = diffTime / (1000 * 60 * 60 * 24);
+
+      if (Y < 0) {
+        document.getElementById('result').textContent = '終了日は開始日以降を指定してください。';
+        return;
+      }
+
+      const monthly = document.getElementById('monthly').checked;
+      const half = document.getElementById('half').checked;
+
+      let Z = 0;
+      if (monthly && half) Z = 78;
+      else if (monthly) Z = 53;
+      else if (half) Z = 26;
+
+      let W = X + Y * (Z + 400);
+
+      const integer = Math.floor(W);
+      const decimal = W - integer;
+      const firstDecimal = Math.floor(decimal * 10);
+
+      if (firstDecimal >= 1 && firstDecimal <= 4) {
+        W = integer + 0.5;
+      } else if (firstDecimal >= 6 && firstDecimal <= 9) {
+        W = integer + 1.0;
+      } else {
+        W = Math.round(W * 2) / 2;
+      }
+
+      document.getElementById('result').textContent =
+        `溜まっている石は　おおよそ ${W} 天井分。`;
+    }
+  </script>
+</body>
+</html>
