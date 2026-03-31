@@ -36,15 +36,26 @@
       display: flex;
       align-items: center;
       gap: 6px;
+      flex-wrap: wrap;
     }
     input[type="number"],
     input[type="date"] {
       padding: 6px;
       font-size: 14px;
     }
+    .period-options label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: normal;
+    }
     .checkbox-group label {
       display: block;
       margin-bottom: 4px;
+    }
+    .helper-text {
+      margin-top: 8px;
+      font-size: 13px;
+      color: #334155;
     }
     button {
       width: 100%;
@@ -96,10 +107,22 @@
     <div class="field">
       <label>② いつからいつまでためますか？</label>
       <div class="inline">
+        <span>開始日</span>
         <input type="date" id="startDate">
-        <span>～</span>
+      </div>
+      <div class="period-options">
+        <label><input type="radio" name="periodOption" value="1month" checked> １か月</label>
+        <label><input type="radio" name="periodOption" value="3months"> ３か月</label>
+        <label><input type="radio" name="periodOption" value="6months"> 半年</label>
+        <label><input type="radio" name="periodOption" value="summer"> 夏のハーフアニバーサリーまで</label>
+        <label><input type="radio" name="periodOption" value="winter"> 冬のアニバーサリーまで</label>
+        <label><input type="radio" name="periodOption" value="custom"> 日付を指定する</label>
+      </div>
+      <div class="field" id="customEndDateField" hidden>
+        <label>終了日</label>
         <input type="date" id="endDate">
       </div>
+      <div class="helper-text" id="targetDatePreview"></div>
     </div>
 
     <div class="field">
@@ -123,17 +146,164 @@
   </div>
 
 <script>
+function parseDateInput(value) {
+  if (!value) return null;
+
+  const parts = value.split("-").map(Number);
+  if (parts.length !== 3 || parts.some(Number.isNaN)) return null;
+
+  return new Date(parts[0], parts[1] - 1, parts[2]);
+}
+
+function formatDateInput(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatDateLabel(date) {
+  const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
+  return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 (${weekdays[date.getDay()]})`;
+}
+
+function addMonthsClamped(date, months) {
+  const targetMonthStart = new Date(date.getFullYear(), date.getMonth() + months, 1);
+  const lastDay = new Date(
+    targetMonthStart.getFullYear(),
+    targetMonthStart.getMonth() + 1,
+    0
+  ).getDate();
+
+  return new Date(
+    targetMonthStart.getFullYear(),
+    targetMonthStart.getMonth(),
+    Math.min(date.getDate(), lastDay)
+  );
+}
+
+function getNthWeekdayOfMonth(year, monthIndex, weekday, nth) {
+  const firstDay = new Date(year, monthIndex, 1);
+  const offset = (weekday - firstDay.getDay() + 7) % 7;
+  return new Date(year, monthIndex, 1 + offset + (nth - 1) * 7);
+}
+
+function getNextSummerHalfAnniversary(start) {
+  let year = start.getFullYear();
+  let target = getNthWeekdayOfMonth(year, 6, 2, 4);
+
+  if (target < start) {
+    year += 1;
+    target = getNthWeekdayOfMonth(year, 6, 2, 4);
+  }
+
+  return target;
+}
+
+function getNextWinterAnniversary(start) {
+  let year = start.getFullYear();
+  let target = getNthWeekdayOfMonth(year, 0, 1, 4);
+
+  if (target < start) {
+    year += 1;
+    target = getNthWeekdayOfMonth(year, 0, 1, 4);
+  }
+
+  return target;
+}
+
+function getSelectedPeriodOption() {
+  const selected = document.querySelector('input[name="periodOption"]:checked');
+  return selected ? selected.value : "1month";
+}
+
+function resolveEndDate(start, periodOption) {
+  if (!start) return null;
+
+  if (periodOption === "1month") return addMonthsClamped(start, 1);
+  if (periodOption === "3months") return addMonthsClamped(start, 3);
+  if (periodOption === "6months") return addMonthsClamped(start, 6);
+  if (periodOption === "summer") return getNextSummerHalfAnniversary(start);
+  if (periodOption === "winter") return getNextWinterAnniversary(start);
+  if (periodOption === "custom") {
+    return parseDateInput(document.getElementById("endDate").value);
+  }
+
+  return null;
+}
+
+function getDiffInDays(start, end) {
+  const utcStart = Date.UTC(start.getFullYear(), start.getMonth(), start.getDate());
+  const utcEnd = Date.UTC(end.getFullYear(), end.getMonth(), end.getDate());
+  return Math.max(0, Math.floor((utcEnd - utcStart) / (1000 * 60 * 60 * 24)));
+}
+
+function updatePeriodUi() {
+  const start = parseDateInput(document.getElementById("startDate").value);
+  const endDateField = document.getElementById("customEndDateField");
+  const endDateInput = document.getElementById("endDate");
+  const preview = document.getElementById("targetDatePreview");
+  const periodOption = getSelectedPeriodOption();
+
+  endDateField.hidden = periodOption !== "custom";
+
+  if (start) {
+    endDateInput.min = formatDateInput(start);
+  } else {
+    endDateInput.min = "";
+  }
+
+  const end = resolveEndDate(start, periodOption);
+
+  if (!start) {
+    preview.innerText = "開始日を選択してください。";
+    return;
+  }
+
+  if (periodOption === "custom") {
+    if (!end) {
+      preview.innerText = "終了日を指定してください。";
+      return;
+    }
+
+    if (end < start) {
+      preview.innerText = "終了日は開始日以降を選択してください。";
+      return;
+    }
+  }
+
+  if (!end) {
+    preview.innerText = "";
+    return;
+  }
+
+  preview.innerText = `終了日: ${formatDateLabel(end)}`;
+}
+
 function calculate() {
+  const result = document.getElementById("result");
   const X = Number(document.getElementById("stone").value) || 0;
 
-  const start = new Date(document.getElementById("startDate").value);
-  const end = new Date(document.getElementById("endDate").value);
+  const start = parseDateInput(document.getElementById("startDate").value);
+  const periodOption = getSelectedPeriodOption();
+  const end = resolveEndDate(start, periodOption);
 
-  let Y = 0;
-  if (!isNaN(start) && !isNaN(end)) {
-    const diff = end - start;
-    Y = Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
+  if (!start) {
+    result.innerText = "開始日を選択してください。";
+    return;
   }
+
+  if (!end) {
+    result.innerText = "終了日を選択してください。";
+    return;
+  }
+
+  if (end < start) {
+    result.innerText = "終了日は開始日以降を選択してください。";
+    return;
+  }
+
+  const Y = getDiffInDays(start, end);
 
   const monthly = document.getElementById("monthly").checked;
   const half = document.getElementById("half").checked;
@@ -159,9 +329,29 @@ function calculate() {
     W = Math.round(W * 2) / 2;
   }
 
-  document.getElementById("result").innerText =
+  result.innerText =
     "溜まっている石は　おおよそ " + W.toFixed(1) + " 天井分。";
 }
+
+function initializeForm() {
+  const today = new Date();
+  const startDateInput = document.getElementById("startDate");
+  const endDateInput = document.getElementById("endDate");
+
+  startDateInput.value = formatDateInput(today);
+  endDateInput.value = formatDateInput(today);
+
+  startDateInput.addEventListener("change", updatePeriodUi);
+  endDateInput.addEventListener("change", updatePeriodUi);
+
+  document.querySelectorAll('input[name="periodOption"]').forEach((input) => {
+    input.addEventListener("change", updatePeriodUi);
+  });
+
+  updatePeriodUi();
+}
+
+initializeForm();
 </script>
 </body>
 </html>
