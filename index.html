@@ -188,13 +188,21 @@ function getNthWeekdayOfMonth(year, monthIndex, weekday, nth) {
   return new Date(year, monthIndex, 1 + offset + (nth - 1) * 7);
 }
 
+function getSummerHalfAnniversaryForYear(year) {
+  return getNthWeekdayOfMonth(year, 6, 2, 4);
+}
+
+function getWinterAnniversaryForYear(year) {
+  return getNthWeekdayOfMonth(year, 0, 1, 4);
+}
+
 function getNextSummerHalfAnniversary(start) {
   let year = start.getFullYear();
-  let target = getNthWeekdayOfMonth(year, 6, 2, 4);
+  let target = getSummerHalfAnniversaryForYear(year);
 
   if (target < start) {
     year += 1;
-    target = getNthWeekdayOfMonth(year, 6, 2, 4);
+    target = getSummerHalfAnniversaryForYear(year);
   }
 
   return target;
@@ -202,14 +210,33 @@ function getNextSummerHalfAnniversary(start) {
 
 function getNextWinterAnniversary(start) {
   let year = start.getFullYear();
-  let target = getNthWeekdayOfMonth(year, 0, 1, 4);
+  let target = getWinterAnniversaryForYear(year);
 
   if (target < start) {
     year += 1;
-    target = getNthWeekdayOfMonth(year, 0, 1, 4);
+    target = getWinterAnniversaryForYear(year);
   }
 
   return target;
+}
+
+function countAnniversaryRewards(start, end) {
+  let count = 0;
+
+  for (let year = start.getFullYear(); year <= end.getFullYear(); year += 1) {
+    const summer = getSummerHalfAnniversaryForYear(year);
+    const winter = getWinterAnniversaryForYear(year);
+
+    if (summer > start && summer <= end) {
+      count += 1;
+    }
+
+    if (winter > start && winter <= end) {
+      count += 1;
+    }
+  }
+
+  return count;
 }
 
 function getSelectedPeriodOption() {
@@ -313,7 +340,10 @@ function calculate() {
   else if (monthly) Z = 53;
   else if (half) Z = 26;
 
-  const M = document.getElementById("anniv").checked ? 15000 : 0;
+  const annivRewardCount = document.getElementById("anniv").checked
+    ? countAnniversaryRewards(start, end)
+    : 0;
+  const M = annivRewardCount * 15000;
 
   let W = (X + Y * (Z + 400) + M) / 24000;
 
