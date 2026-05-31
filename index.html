@@ -46,6 +46,13 @@
     gtag('js', new Date());
     gtag('config', 'G-SRLGJNCQD3');
   </script>
+  <script>
+    window.PendakoAnalytics = {
+      appId: "ba_ishi_app",
+      version: "0.1.0"
+    };
+  </script>
+  <script defer src="https://analytics.pendako.workers.dev/pendako.js"></script>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -182,7 +189,7 @@
       </div>
     </div>
 
-    <button onclick="calculate()">計算する</button>
+    <button onclick="calculate()" data-pa-event="calculate_click">計算する</button>
 
     <div id="result"></div>
   </div>
