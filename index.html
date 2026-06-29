@@ -132,15 +132,32 @@
       font-size: 12px;
     }
     .credit a {
+      display: inline-flex;
+      align-items: center;
+      padding: 5px 10px;
       color: #2563eb;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 999px;
+      font-weight: 600;
+      line-height: 1;
       text-decoration: none;
+      box-shadow: 0 1px 2px rgba(37, 99, 235, 0.12);
+      transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+    }
+    .credit a:hover,
+    .credit a:focus-visible {
+      background: #dbeafe;
+      border-color: #93c5fd;
+      transform: translateY(-1px);
+      outline: none;
     }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="credit">
-      <a href="https://x.com/yucky_games" target="_blank">made by ゆっきー</a>
+      <a href="https://x.com/yucky_games" target="_blank" rel="noopener">made by ゆっきー</a>
     </div>
 
     <h1>天井計算スルヨちゃん</h1>
